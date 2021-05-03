@@ -6,18 +6,18 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.softinsa.myapplication.R
-import com.softinsa.myapplication.data.model.PhotoSizeDetailModel
+import com.softinsa.myapplication.data.model.ImageSizeDetailModel
 import kotlinx.android.synthetic.main.item_layout.view.*
 
-class MainAdapter(private val photoSizeDetailList: ArrayList<PhotoSizeDetailModel>) : RecyclerView.Adapter<MainAdapter.DataViewHolder>() {
+class MainAdapter(private val imageSizeDetailList: ArrayList<ImageSizeDetailModel>) : RecyclerView.Adapter<MainAdapter.DataViewHolder>() {
     private var mClickListener: ItemClickListener? = null
 
     class DataViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
 
-        fun bind(photoSizeDetailModel: PhotoSizeDetailModel) {
+        fun bind(imageSizeDetailModel: ImageSizeDetailModel) {
             itemView.apply {
                 Glide.with(imageViewAvatar.context)
-                        .load(photoSizeDetailModel.source)
+                        .load(imageSizeDetailModel.source)
                         .into(imageViewAvatar)
             }
         }
@@ -26,10 +26,10 @@ class MainAdapter(private val photoSizeDetailList: ArrayList<PhotoSizeDetailMode
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DataViewHolder =
         DataViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_layout, parent, false))
 
-    override fun getItemCount(): Int = photoSizeDetailList.size
+    override fun getItemCount(): Int = imageSizeDetailList.size
 
     override fun onBindViewHolder(holder: DataViewHolder, position: Int) {
-        holder.bind(photoSizeDetailList[position])
+        holder.bind(imageSizeDetailList[position])
 
         holder.itemView.setOnClickListener {
             if (mClickListener != null) mClickListener!!.onBirdItemClick(
@@ -39,10 +39,10 @@ class MainAdapter(private val photoSizeDetailList: ArrayList<PhotoSizeDetailMode
         }
     }
 
-    fun addPhotos(photoSizeDetailList: List<PhotoSizeDetailModel>) {
-        this.photoSizeDetailList.apply {
+    fun addImages(imageSizeDetailList: List<ImageSizeDetailModel>) {
+        this.imageSizeDetailList.apply {
             clear()
-            addAll(photoSizeDetailList)
+            addAll(imageSizeDetailList)
         }
     }
 

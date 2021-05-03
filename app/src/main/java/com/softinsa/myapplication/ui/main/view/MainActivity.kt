@@ -1,12 +1,8 @@
 package com.softinsa.myapplication.ui.main.view
 
-import android.app.Dialog
 import android.os.Bundle
 import android.util.Log
 import android.view.View
-import android.view.ViewGroup
-import android.view.Window
-import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
@@ -17,17 +13,15 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.softinsa.myapplication.R
 import com.softinsa.myapplication.data.api.FlickrHelper
-import com.softinsa.myapplication.data.model.PhotoDetailModel
-import com.softinsa.myapplication.data.model.PhotoResponseModel
-import com.softinsa.myapplication.data.model.PhotoSizeDetailModel
+import com.softinsa.myapplication.data.model.ImageDetailModel
+import com.softinsa.myapplication.data.model.ImageResponseModel
+import com.softinsa.myapplication.data.model.ImageSizeDetailModel
 import com.softinsa.myapplication.data.network.RetrofitBuilder
 import com.softinsa.myapplication.enums.StatusNetworkCall.*
 import com.softinsa.myapplication.ui.base.ViewModelFactory
 import com.softinsa.myapplication.ui.main.adapters.MainAdapter
 import com.softinsa.myapplication.ui.main.viewmodel.MainViewModel
 import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.android.synthetic.main.item_layout.*
-import kotlinx.android.synthetic.main.item_layout.view.*
 
 
 class MainActivity : AppCompatActivity(), MainAdapter.ItemClickListener {
@@ -39,15 +33,16 @@ class MainActivity : AppCompatActivity(), MainAdapter.ItemClickListener {
     private var perPage = 1
     private var startingIndex = 0
 
-    private val photoDetailModelList: ArrayList<PhotoDetailModel> = ArrayList()
-    private val photoSizeDetailList: ArrayList<PhotoSizeDetailModel> = ArrayList()
+    private val imageDetailModelList: ArrayList<ImageDetailModel> = ArrayList()
+    private val imageSizeDetailList: ArrayList<ImageSizeDetailModel> = ArrayList()
 
     var mLayoutManager: GridLayoutManager? = null
 
     object Constants {
         const val GRID_COLUMNS = 2
         const val TAG = "birds"
-        const val FILTER_SIZE_BY_LABEL = "Large Square"
+        const val FILTER_SIZE_BY_LARGE_SQUARE = "Large Square"
+        const val FILTER_SIZE_BY_LARGE = "Large"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,22 +67,22 @@ class MainActivity : AppCompatActivity(), MainAdapter.ItemClickListener {
 
         mLayoutManager = recyclerView.layoutManager as GridLayoutManager
 
-        // Setup pagination when rv reach bottom
+        // Setup pagination when rv reaches bottom
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                 super.onScrollStateChanged(recyclerView, newState)
                 if (!recyclerView.canScrollVertically(1) && newState == RecyclerView.SCROLL_STATE_IDLE) {
-                    Log.d(Constants.TAG, "reach end of list")
+                    Log.d(Constants.TAG, "reach end of image list")
                     currentPage++
-                    getPhotoList(Constants.TAG, currentPage)
+                    getMainImageList(Constants.TAG, currentPage)
                 }
             }
         })
 
-        getPhotoList(Constants.TAG, currentPage)
+        getMainImageList(Constants.TAG, currentPage)
     }
 
-    private fun getPhotoList(tags: String, page: Int) {
+    private fun getMainImageList(tags: String, page: Int) {
         viewModel.getBirdsImagesList(tags, page).observe(this, Observer { it ->
             it?.let { resource ->
                 when (resource.status) {
@@ -96,7 +91,7 @@ class MainActivity : AppCompatActivity(), MainAdapter.ItemClickListener {
                         progressBar.visibility = View.GONE
                         resource.data?.let {
                             //
-                            totalPages = it.photos.pages
+                            totalPages = it.images.pages
                             retrievePhotoList(it)
                         }
                     }
@@ -111,18 +106,10 @@ class MainActivity : AppCompatActivity(), MainAdapter.ItemClickListener {
                     }
                 }
             }
-
-            if (viewModel.getBirdsImagesList(tags, page).hasActiveObservers()) {
-                Log.d(Constants.TAG, " -- getBirdList has Active Observers -- ")
-                viewModel.getBirdsImagesList(tags, page).removeObservers(this)
-            } else {
-                Log.d(Constants.TAG, " -- getBirdList does not have Active Observers -- ")
-            }
         })
     }
 
-
-    private fun getImageSizeList(imageId: String) {
+    private fun getImageListByTag(imageId: String, imageTag:String) {
         viewModel.getSizeListByImageId(imageId).observe(this, Observer { it ->
             it?.let { resource ->
                 when (resource.status) {
@@ -132,15 +119,27 @@ class MainActivity : AppCompatActivity(), MainAdapter.ItemClickListener {
                         resource.data?.let { photoSizesResponseModel ->
 
                             // Filter size by given label (Large Square)
-                            var sizeListFiltered: List<PhotoSizeDetailModel> =
-                                    photoSizesResponseModel.sizes.photoSizeDetailList.filter { photoSizeDetailModel ->
-                                        photoSizeDetailModel.label == Constants.FILTER_SIZE_BY_LABEL
+                            var sizeListFiltered: List<ImageSizeDetailModel> =
+                                    photoSizesResponseModel.sizes.imageSizeDetailList.filter { photoSizeDetailModel ->
+                                        photoSizeDetailModel.label == imageTag
 
                                     }
-                            // Update size list with filtered size
-                            photoSizeDetailList.addAll(sizeListFiltered)
-                            // Update rv adpater with new list
-                            retrieveImageSizesList(photoSizeDetailList)
+
+                            // Handle full screen image
+                            if (sizeListFiltered.size == 1 && imageTag == Constants.FILTER_SIZE_BY_LARGE) {
+                                sizeListFiltered[0].imageId = imageId
+                                retrieveFullscreenImage(sizeListFiltered[0])
+                            // Handle large square image to show in the list
+                            } else if (sizeListFiltered.size == 1 && imageTag == Constants.FILTER_SIZE_BY_LARGE_SQUARE) {
+                                // Update size list with filtered size
+                                sizeListFiltered[0].imageId = imageId
+                                imageSizeDetailList.add(sizeListFiltered[0])
+                                // Update rv adpater with new image
+                                retrieveImageSizesList(imageSizeDetailList)
+                            } else {
+                                var tagNotFound = getString(R.string.image_by_tag_not_found_error, imageId)
+                                Toast.makeText(this, tagNotFound, Toast.LENGTH_LONG).show()
+                            }
                         }
                     }
                     ERROR -> {
@@ -157,16 +156,16 @@ class MainActivity : AppCompatActivity(), MainAdapter.ItemClickListener {
         })
     }
 
-    private fun retrievePhotoList(photoResponseModel: PhotoResponseModel) {
-        photoResponseModel.photos.photoList?.let { currentPhotoDetailModelList ->
-            photoDetailModelList.addAll(currentPhotoDetailModelList)
-            Log.d(Constants.TAG, "List size -> ${photoDetailModelList.size}")
+    private fun retrievePhotoList(imageResponseModel: ImageResponseModel) {
+        imageResponseModel.images.imageList?.let { currentPhotoDetailModelList ->
+            imageDetailModelList.addAll(currentPhotoDetailModelList)
+            Log.d(Constants.TAG, "List size -> ${imageDetailModelList.size}")
 
-            perPage = photoResponseModel.photos.perpage
+            perPage = imageResponseModel.images.perpage
 
             // get only new items from starting index to the end of the list
-            for (i in startingIndex until photoDetailModelList.size) {
-                getImageSizeList(photoDetailModelList[i].id)
+            for (i in startingIndex until imageDetailModelList.size) {
+                getImageListByTag(imageDetailModelList[i].id, Constants.FILTER_SIZE_BY_LARGE_SQUARE)
             }
 
             //Update Starting Index
@@ -175,15 +174,19 @@ class MainActivity : AppCompatActivity(), MainAdapter.ItemClickListener {
         }
     }
 
-    private fun retrieveImageSizesList(photoSizeDetailModel: List<PhotoSizeDetailModel>) {
+    private fun retrieveImageSizesList(imageSizeDetailModel: List<ImageSizeDetailModel>) {
         adapter.apply {
-            addPhotos(photoSizeDetailModel)
+            addImages(imageSizeDetailModel)
             notifyDataSetChanged()
         }
     }
 
     override fun onBirdItemClick(view: View?, position: Int) {
+        Log.d(Constants.TAG, "Pressed image id -> ${imageSizeDetailList[position].imageId}")
+        getImageListByTag(imageSizeDetailList[position].imageId, Constants.FILTER_SIZE_BY_LARGE)
+    }
 
+    private fun retrieveFullscreenImage(imageSizeDetailModel: ImageSizeDetailModel) {
         frFullScreenImageContainer.visibility = View.VISIBLE
         frFullScreenImageContainer.setOnClickListener {
             if (frFullScreenImageContainer.isVisible){
@@ -192,9 +195,8 @@ class MainActivity : AppCompatActivity(), MainAdapter.ItemClickListener {
         }
 
         Glide.with(ivBirdFullScreen.context)
-                .load(photoSizeDetailList[position].source)
-                .centerInside()
+                .load(imageSizeDetailModel.source)
+                .fitCenter()
                 .into(ivBirdFullScreen)
-
     }
 }

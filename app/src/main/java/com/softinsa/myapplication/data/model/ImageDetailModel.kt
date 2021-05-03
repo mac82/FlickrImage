@@ -2,7 +2,7 @@ package com.softinsa.myapplication.data.model
 
 import com.google.gson.annotations.SerializedName
 
-data class PhotoDetailModel (
+data class ImageDetailModel (
     @SerializedName("id") val id: String,
     @SerializedName("owner") val owner: String,
     @SerializedName("secret") val secret: String,
