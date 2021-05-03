@@ -1,0 +1,9 @@
+<resources>
+    <!-- List Item CardView -->
+    <dimen name="card_view_corners_radius">7dp</dimen>
+    <dimen name="card_view_elevation">7dp</dimen>
+    <dimen name="fullscreen_imageview_elevation">10dp</dimen>
+    <dimen name="card_birds_item_height">150dp</dimen>
+    <dimen name="margin_medium">14dp</dimen>
+
+</resources>
